@@ -1,0 +1,1082 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Birthday</title>
+  <style>
+    :root {
+      --box-blue: #00bcff;
+      --glass-bg: linear-gradient(135deg, rgba(255, 255, 255, 0.12), rgba(255, 255, 255, 0.03));
+      --glass-border: rgba(255, 255, 255, 0.25);
+      --glass-shadow: 0 8px 32px 0 rgba(31, 38, 135, 0.3);
+      --bg-dark: #0a0514;
+    }
+
+    * { margin: 0; padding: 0; box-sizing: border-box; user-select: none; }
+
+    body {
+      background-color: var(--bg-dark); color: #ffffff; font-family: 'PingFang SC', sans-serif;
+      overflow: hidden; width: 100vw; height: 100vh;
+    }
+
+    /* ================= 1. 身份解锁屏幕 ================= */
+    #auth-screen {
+      position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; z-index: 999;
+      background: linear-gradient(135deg, #ffffff, #e0f2fe, #bae6fd, #e0f2fe);
+      display: flex; flex-direction: column; align-items: center; justify-content: center;
+      transition: opacity 0.6s cubic-bezier(0.4, 0, 0.2, 1); overflow: hidden;
+    }
+
+    @keyframes shakeBox {
+      0%, 100% { transform: translateX(0); }
+      20%, 60% { transform: translateX(-10px); }
+      40%, 80% { transform: translateX(10px); }
+    }
+    .shake-error { animation: shakeBox 0.4s ease-in-out; }
+
+    .clouds-container { position: absolute; top: 0; left: 0; width: 100%; height: 100%; pointer-events: none; z-index: 1; }
+    .cloud { position: absolute; background: rgba(255, 255, 255, 0.7); border-radius: 100px; animation: floatCloud linear infinite; filter: blur(4px); }
+    .cloud::before, .cloud::after { content: ''; position: absolute; background: rgba(255, 255, 255, 0.7); border-radius: 50%; }
+    
+    .cloud-1 { width: 120px; height: 40px; top: 10%; animation-duration: 32s; animation-delay: -5s; }
+    .cloud-1::before { width: 50px; height: 50px; top: -20px; left: 20px; }
+    .cloud-1::after { width: 40px; height: 40px; top: -15px; left: 60px; }
+    
+    .cloud-2 { width: 160px; height: 50px; top: 25%; animation-duration: 45s; animation-delay: -15s; opacity: 0.6; transform: scale(0.8); }
+    .cloud-2::before { width: 70px; height: 70px; top: -30px; left: 25px; }
+    .cloud-2::after { width: 55px; height: 55px; top: -20px; left: 80px; }
+
+    .cloud-3 { width: 140px; height: 45px; top: 45%; animation-duration: 38s; animation-delay: -8s; opacity: 0.7; transform: scale(0.9); }
+    .cloud-3::before { width: 60px; height: 60px; top: -25px; left: 22px; }
+    .cloud-3::after { width: 45px; height: 45px; top: -18px; left: 70px; }
+
+    .cloud-4 { width: 180px; height: 55px; top: 62%; animation-duration: 52s; animation-delay: -25s; opacity: 0.5; transform: scale(0.75); }
+    .cloud-4::before { width: 80px; height: 80px; top: -35px; left: 30px; }
+    .cloud-4::after { width: 60px; height: 60px; top: -25px; left: 95px; }
+
+    .cloud-5 { width: 110px; height: 38px; top: 5%; animation-duration: 28s; animation-delay: -12s; opacity: 0.8; transform: scale(1.1); }
+    .cloud-5::before { width: 45px; height: 45px; top: -18px; left: 18px; }
+    .cloud-5::after { width: 35px; height: 35px; top: -12px; left: 55px; }
+
+    .cloud-6 { width: 150px; height: 48px; top: 35%; animation-duration: 41s; animation-delay: -30s; opacity: 0.65; transform: scale(0.85); }
+    .cloud-6::before { width: 65px; height: 65px; top: -28px; left: 24px; }
+    .cloud-6::after { width: 50px; height: 50px; top: -22px; left: 75px; }
+
+    .cloud-7 { width: 130px; height: 42px; top: 52%; animation-duration: 36s; animation-delay: -18s; opacity: 0.75; transform: scale(1.0); }
+    .cloud-7::before { width: 55px; height: 55px; top: -22px; left: 20px; }
+    .cloud-7::after { width: 42px; height: 42px; top: -15px; left: 65px; }
+
+    .cloud-8 { width: 170px; height: 52px; top: 18%; animation-duration: 49s; animation-delay: -2s; opacity: 0.55; transform: scale(0.7); }
+    .cloud-8::before { width: 75px; height: 75px; top: -32px; left: 28px; }
+    .cloud-8::after { width: 58px; height: 58px; top: -24px; left: 90px; }
+
+    @keyframes floatCloud { from { transform: translateX(100vw); } to { transform: translateX(-200px); } }
+
+    #seaCanvas { position: absolute; bottom: 0; left: 0; width: 100%; height: 32vh; z-index: 2; pointer-events: none; }
+    .auth-container { position: relative; z-index: 5; width: 85%; max-width: 380px; }
+    
+    .auth-box {
+      position: relative; z-index: 2; width: 100%; padding: 35px 40px; border-radius: 24px;
+      background: var(--glass-bg); backdrop-filter: blur(20px); -webkit-backdrop-filter: blur(20px);
+      border: 1px solid var(--glass-border); box-shadow: var(--glass-shadow); text-align: center;
+      transition: border-color 0.3s ease, box-shadow 0.3s ease;
+    }
+    .auth-box h2 { font-size: 1.25rem; color: #ff9a9e; letter-spacing: 2px; text-shadow: 0 0 10px rgba(255,154,158,0.3); margin-bottom: 5px; }
+    .auth-box .subtitle { font-size: 0.8rem; color: #718096; margin-bottom: 20px; }
+    .input-container { position: relative; width: 100%; margin: 15px 0 25px 0; }
+    
+    .auth-box input {
+      width: 100%; padding: 14px; border-radius: 14px; background: rgba(255, 255, 255, 0.4); 
+      backdrop-filter: blur(8px); -webkit-backdrop-filter: blur(8px); border: 1px solid rgba(255, 255, 255, 0.5); 
+      color: #333; font-size: 1.6rem; font-weight: bold; text-align: center; letter-spacing: 10px; outline: none;
+      transition: all 0.3s ease;
+    }
+    .auth-box input:focus { background: rgba(255, 255, 255, 0.65); border-color: var(--box-blue); box-shadow: 0 0 15px rgba(0, 188, 255, 0.3); }
+    .auth-box input::placeholder { color: #a0aec0; letter-spacing: 1px; font-size: 0.95rem; font-weight: normal; }
+
+    .cat-wrapper { 
+      position: absolute; bottom: 100%; left: 50%; z-index: 1; opacity: 0; pointer-events: none;
+      transform: translate(-50%, 40px) scale(0.7); transition: transform 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.25), opacity 0.35s ease;
+    }
+    .cat-wrapper.peeking { opacity: 1; pointer-events: auto; transform: translate(-50%, -15px) scale(1); }
+    .real-pet-img { width: 75px; height: 75px; object-fit: contain; cursor: pointer; display: block; }
+    .cat-img { animation: catFloatAnimation 2s ease-in-out infinite alternate; }
+    @keyframes catFloatAnimation { 0% { transform: translateY(0); } 100% { transform: translateY(-6px); } }
+
+    .pet-bubble {
+      position: absolute; bottom: 100%; left: 50%; transform: scale(0.8) translate(-50%, 5px); transform-origin: bottom center;
+      background: white; color: #333; padding: 6px 12px; border-radius: 8px; font-size: 11px; white-space: nowrap;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.15); border: 1px solid rgba(0,0,0,0.05); opacity: 0; transition: opacity 0.2s ease, transform 0.2s ease; margin-bottom: 6px;
+    }
+    .pet-bubble::after { content: ''; position: absolute; bottom: -5px; left: 50%; transform: translateX(-50%); border-width: 5px 5px 0; border-style: solid; border-color: white transparent; }
+    .cat-wrapper.speaking .pet-bubble { opacity: 1; transform: scale(1) translate(-50%, 0); }
+    @keyframes jumpAction { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-18px); } }
+
+    .auth-box button {
+      width: 100%; padding: 14px; border-radius: 14px; border: none; background: linear-gradient(45deg, #ff9a9e, var(--box-blue));
+      color: white; font-size: 1rem; font-weight: bold; letter-spacing: 2px; cursor: pointer; transition: transform 0.2s, box-shadow 0.3s;
+      box-shadow: 0 4px 15px rgba(255, 154, 158, 0.4);
+    }
+    .auth-box button:active { transform: scale(0.98); }
+
+    /* ================= 2. 全屏磨砂加载过渡系统 ================= */
+    #loading-screen {
+      position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; z-index: 9998;
+      background: rgba(10, 5, 20, 0.88); backdrop-filter: blur(25px); -webkit-backdrop-filter: blur(25px);
+      display: none; flex-direction: column; align-items: center; justify-content: center;
+      opacity: 0; transition: opacity 0.5s ease;
+    }
+    
+    .celestial-loader {
+      position: relative; width: 100px; height: 100px;
+      display: flex; align-items: center; justify-content: center;
+      animation: spinLoader 2.5s linear infinite;
+    }
+    .celestial-loader::before {
+      content: ''; position: absolute; width: 70px; height: 70px;
+      border: 1px dashed rgba(255, 255, 255, 0.15); border-radius: 50%;
+    }
+    .star { position: absolute; border-radius: 50%; }
+    .star-1 {
+      width: 18px; height: 18px;
+      background: linear-gradient(135deg, #ff9a9e, #fecfef);
+      box-shadow: 0 0 20px rgba(255, 154, 158, 0.8), 0 0 40px rgba(255, 154, 158, 0.4);
+      transform: translateX(-35px);
+    }
+    .star-2 {
+      width: 14px; height: 14px;
+      background: linear-gradient(135deg, #00bcff, #7dd3fc);
+      box-shadow: 0 0 20px rgba(0, 188, 255, 0.8), 0 0 40px rgba(0, 188, 255, 0.4);
+      transform: translateX(35px);
+    }
+    @keyframes spinLoader { to { transform: rotate(360deg); } }
+    #loading-screen p { margin-top: 25px; color: rgba(255,255,255,0.8); font-size: 0.95rem; letter-spacing: 3px; font-weight: 300; }
+
+    /* ================= 3. 磨砂柔焦情感互动层 ================= */
+    .interactive-card-screen {
+      position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; z-index: 500;
+      display: flex; align-items: center; justify-content: center;
+      transition: opacity 0.6s cubic-bezier(0.4, 0, 0.2, 1);
+    }
+    .glass-card-box {
+      width: 88%; max-width: 420px; padding: 45px 35px; border-radius: 28px;
+      background: var(--glass-bg); backdrop-filter: blur(25px); -webkit-backdrop-filter: blur(25px);
+      border: 1px solid var(--glass-border); box-shadow: var(--glass-shadow); text-align: center;
+      animation: cardFloatIn 0.75s cubic-bezier(0.175, 0.885, 0.32, 1.25);
+    }
+    @keyframes cardFloatIn { from { opacity: 0; transform: scale(0.9) translateY(30px); } to { opacity: 1; transform: scale(1) translateY(0); } }
+    
+    .card-icon { font-size: 2.8rem; margin-bottom: 12px; animation: bounceIcon 2s ease-in-out infinite alternate; display: inline-block; }
+    @keyframes bounceIcon { from { transform: translateY(0); } to { transform: translateY(-8px); } }
+    
+    .glowing-title { font-size: 1.5rem; background: linear-gradient(45deg, #ff9a9e, #fecfef, var(--box-blue)); -webkit-background-clip: text; -webkit-text-fill-color: transparent; margin-bottom: 18px; letter-spacing: 1px; font-weight: bold; }
+    .wish-text { font-size: 1.05rem; color: #fecfef; line-height: 1.7; margin-bottom: 8px; letter-spacing: 1px; font-style: italic; font-weight: 300; }
+    .highlight-days { font-size: 1.15rem; color: #ffffff; margin: 22px 0; font-weight: 500; letter-spacing: 1px; }
+    .gradient-text { font-size: 2.5rem; font-weight: bold; background: linear-gradient(45deg, #ff9a9e, #ffde17, var(--box-blue)); -webkit-background-clip: text; -webkit-text-fill-color: transparent; padding: 0 6px; text-shadow: 0 0 15px rgba(255,154,158,0.3); }
+    .sub-wish { font-size: 0.95rem; color: rgba(240, 230, 255, 0.8); line-height: 1.8; margin-bottom: 28px; text-align: justify; text-justify: inter-word; }
+    
+    .guide-next-btn {
+      width: 100%; padding: 14px; border-radius: 14px; border: none; background: linear-gradient(45deg, rgba(255,154,158,0.9), rgba(0,188,255,0.9));
+      color: white; font-size: 0.95rem; font-weight: bold; letter-spacing: 1px; cursor: pointer; transition: all 0.3s ease;
+      box-shadow: 0 4px 15px rgba(31, 38, 135, 0.2); outline: none; animation: buttonPulse 2s infinite alternate;
+    }
+    @keyframes buttonPulse { 0% { box-shadow: 0 4px 15px rgba(255, 154, 158, 0.2); } 100% { box-shadow: 0 6px 22px rgba(0, 188, 255, 0.5); } }
+    .guide-next-btn:hover { transform: translateY(-2px); filter: brightness(1.1); }
+    .guide-next-btn:active { transform: translateY(0); }
+
+    /* ================= 4. 主场景核心布局与播放器 ================= */
+    .wrapper {
+      position: relative; z-index: 2; display: flex; flex-direction: column;
+      align-items: center; justify-content: space-between; height: 100vh; padding: 30px 20px;
+    }
+
+    .header-area { text-align: center; pointer-events: none; z-index: 10; display: flex; flex-direction: column; align-items: center; }
+    .header-area h1 { font-size: 1.8rem; background: linear-gradient(45deg, #ff9a9e, #fecfef, var(--box-blue)); -webkit-background-clip: text; -webkit-text-fill-color: transparent; letter-spacing: 2px; }
+
+    .music-player {
+      margin-top: 15px; width: 100%; max-width: 330px; padding: 12px 16px; 
+      background: var(--glass-bg); backdrop-filter: blur(25px); -webkit-backdrop-filter: blur(25px);
+      border: 1px solid var(--glass-border); box-shadow: var(--glass-shadow); border-radius: 24px; 
+      display: flex; align-items: center; gap: 16px; pointer-events: auto; text-align: left;
+      position: relative; overflow: visible;
+    }
+    
+    .vinyl-container {
+      position: relative; width: 66px; height: 66px; flex-shrink: 0;
+      display: flex; align-items: center; justify-content: center;
+    }
+    .vinyl-disc {
+      width: 62px; height: 62px; border-radius: 50%;
+      background: radial-gradient(circle, #111111 25%, #252525 30%, #080808 55%, #1c1c1c 70%, #000000 100%);
+      border: 1px solid rgba(255, 255, 255, 0.15);
+      box-shadow: 0 4px 12px rgba(0,0,0,0.5), inset 0 0 6px rgba(255,255,255,0.3);
+      display: flex; align-items: center; justify-content: center;
+      animation: spinDisc 11s linear infinite;
+      animation-play-state: paused;
+    }
+    .music-player.playing .vinyl-disc { animation-play-state: running; }
+    .vinyl-center {
+      width: 22px; height: 22px; border-radius: 50%;
+      background: linear-gradient(135deg, #ff9a9e, var(--box-blue));
+      border: 1px solid rgba(255,255,255,0.4);
+      display: flex; align-items: center; justify-content: center;
+      font-size: 10px; color: #fff;
+    }
+    @keyframes spinDisc { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
+    
+    .vinyl-needle {
+      position: absolute; top: -11px; right: 4px; width: 20px; height: 35px;
+      transform-origin: top center; transform: rotate(-30deg);
+      transition: transform 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+      z-index: 15; pointer-events: none;
+    }
+    .music-player.playing .vinyl-needle { transform: rotate(3deg); }
+    .vinyl-needle::before {
+      content: ''; position: absolute; top: 0; left: 8px; width: 2.5px; height: 25px;
+      background: rgba(255, 255, 255, 0.75); border-radius: 2px;
+      transform: rotate(12deg); transform-origin: top center;
+    }
+    .vinyl-needle::after {
+      content: ''; position: absolute; top: 23px; left: 2px; width: 5px; height: 8px;
+      background: #ff9a9e; border-radius: 1px; transform: rotate(40deg);
+      box-shadow: 0 0 5px #ff9a9e;
+    }
+
+    .player-body { flex: 1; display: flex; flex-direction: column; gap: 6px; overflow: hidden; }
+    .player-info { display: flex; justify-content: space-between; align-items: center; width: 100%; }
+    .song-details { display: flex; flex-direction: column; max-width: 125px; }
+    .song-title { font-size: 0.8rem; font-weight: bold; color: #ffffff; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .song-artist { font-size: 0.68rem; color: rgba(255,255,255,0.6); margin-top: 1px; }
+    .player-controls { display: flex; align-items: center; gap: 11px; }
+    .play-btn-node { background: none; border: none; color: #ffffff; font-size: 0.9rem; cursor: pointer; transition: transform 0.2s, color 0.2s; display: flex; align-items: center; justify-content: center; }
+    .play-btn-node:hover { color: var(--box-blue); transform: scale(1.15); }
+    .play-main-toggle { font-size: 1.15rem; color: #ff9a9e; }
+    
+    .progress-box { width: 100%; height: 5px; background: rgba(255,255,255,0.12); border-radius: 3px; cursor: pointer; position: relative; transition: height 0.2s; }
+    .progress-box:hover { height: 7px; }
+    .progress-bar-fill { height: 100%; width: 0%; background: linear-gradient(90deg, #ff9a9e, var(--box-blue)); border-radius: 3px; position: relative; }
+
+    .stage { width: 100%; height: 68vh; display: flex; justify-content: center; align-items: center; position: relative; }
+
+    /* ================= 5. 阶段一：线性切图流 + 左侧玻璃UI ================= */
+    .slider-stage-container {
+      display: flex; width: 92%; max-width: 950px; height: 100%;
+      align-items: center; justify-content: space-between; gap: 40px;
+      pointer-events: auto; position: absolute; opacity: 0; 
+      transform-origin: center center;
+      transition: opacity 0.7s ease, transform 0.75s cubic-bezier(0.76, 0, 0.24, 1), filter 0.7s ease;
+    }
+    
+    .left-intro-card {
+      width: 320px; max-width: 100%; padding: 35px 30px;
+      background: var(--glass-bg); backdrop-filter: blur(20px); -webkit-backdrop-filter: blur(20px);
+      border: 1px solid var(--glass-border); box-shadow: var(--glass-shadow); border-radius: 24px;
+      display: flex; flex-direction: column; justify-content: center;
+    }
+    .left-intro-card h2 { font-size: 1.3rem; color: #ff9a9e; margin-bottom: 15px; text-shadow: 0 2px 4px rgba(0,0,0,0.2); }
+    .left-intro-card p { font-size: 0.95rem; color: #f0e6ff; line-height: 1.7; text-align: justify; }
+
+    .slide-image-viewer {
+      flex: 1.3; height: 380px; position: relative; overflow: hidden;
+      border-radius: 24px; border: 1px solid var(--glass-border);
+      box-shadow: var(--glass-shadow); cursor: pointer;
+    }
+    .slide-img-item {
+      position: absolute; top: 0; left: 0; width: 100%; height: 100%;
+      opacity: 0; transform: translateY(-100%);
+      transition: transform 0.7s cubic-bezier(0.25, 1, 0.5, 1), opacity 0.7s ease;
+    }
+    .slide-img-item.active { opacity: 1; transform: translateY(0); z-index: 2; }
+    .slide-img-item.exit { opacity: 0; transform: translateY(100%); z-index: 1; }
+
+    .slide-img-placeholder {
+      width: 100%; height: 100%; display: flex; align-items: center; justify-content: center;
+      background: linear-gradient(135deg, rgba(255, 154, 158, 0.15), rgba(0, 188, 255, 0.15));
+      font-size: 2rem; font-weight: bold; color: rgba(255,255,255,0.9); text-shadow: 0 4px 10px rgba(0,0,0,0.3);
+    }
+    .slide-img-placeholder img { width: 100%; height: 100%; object-fit: cover; object-position: center; }
+
+    /* ================= 6. 阶段二：广角星轨空间 ================= */
+    .orbit-stage-container {
+      position: absolute; width: 100%; height: 100%; display: none;
+      justify-content: center; align-items: center; opacity: 0;
+      transition: opacity 0.5s ease; pointer-events: none;
+    }
+    .gallery-orbit { position: relative; width: 150px; height: 210px; transform: rotate(var(--orbit-angle, 0deg)); will-change: transform; pointer-events: auto; }
+
+    .img-card {
+      position: absolute; top: 0; left: 0; width: 100%; height: 100%;
+      border-radius: 20px; padding: 10px; background: var(--glass-bg); backdrop-filter: blur(16px); -webkit-backdrop-filter: blur(16px);
+      border: 1px solid var(--glass-border); box-shadow: var(--glass-shadow), inset 0 0 10px rgba(255,255,255,0.1);
+      cursor: pointer; --x: 0px; --y: 0px; --s: 1; --r: 0deg;
+      transform: translate(var(--x), var(--y)) rotate(calc(var(--orbit-angle, 0deg) * -1 + var(--r))) scale(var(--s));
+      transition: transform 0.65s cubic-bezier(0.1, 1, 0.25, 1), opacity 0.4s ease;
+    }
+    .img-card:hover { --s: 1.15; border-color: rgba(255, 255, 255, 0.8); box-shadow: 0 0 35px rgba(255, 154, 158, 0.5); z-index: 999 !important; }
+
+    .img-placeholder {
+      width: 100%; height: 100%; border-radius: 12px; display: flex; align-items: center; justify-content: center;
+      background: linear-gradient(135deg, rgba(255, 154, 158, 0.2), rgba(0, 188, 255, 0.2));
+      font-weight: bold; color: rgba(255,255,255,0.8); font-size: 1.1rem; overflow: hidden; position: relative;
+    }
+    .img-placeholder img { position: absolute; top:0; left:0; width:100%; height:100%; object-fit: cover; object-position: center; }
+
+    /* ================= 7. 灯箱详情弹窗 (深度适配图片展示) ================= */
+    .lightbox {
+      position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; background: rgba(10, 5, 20, 0.75); z-index: 10000;
+      display: none; justify-content: center; align-items: center; opacity: 0; transition: opacity 0.3s ease; backdrop-filter: blur(12px);
+    }
+    .lightbox.active { display: flex; opacity: 1; }
+    
+    .intro-container {
+      display: flex; flex-direction: row; width: 85%; max-width: 820px; height: 65vh;
+      background: var(--glass-bg); border: 1px solid var(--glass-border); border-radius: 24px; overflow: hidden;
+      box-shadow: 0 20px 50px rgba(0,0,0,0.5); transform: scale(0.85); transition: transform 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.1);
+    }
+    .lightbox.active .intro-container { transform: scale(1); }
+    
+    .intro-img-box { 
+      flex: 1.2; background: rgba(0, 0, 0, 0.2); 
+      display: flex; align-items: center; justify-content: center; 
+      overflow: hidden; position: relative;
+    }
+    .intro-text-box { flex: 1; padding: 40px 30px; background: rgba(255, 255, 255, 0.04); display: flex; flex-direction: column; justify-content: center; }
+    .intro-text-box h2 { font-size: 1.4rem; color: #ff9a9e; margin-bottom: 20px; letter-spacing: 1px; }
+    .intro-text-box p { font-size: 0.95rem; color: #f0e6ff; line-height: 1.8; text-align: justify; }
+    
+    #bgCanvas { position: absolute; top: 0; left: 0; width: 100%; height: 100%; z-index: 1; pointer-events: none; }
+
+    /* ================= 8. 新增：深度响应式自适应补丁 (完美防止缩小时重叠) ================= */
+    .glass-card-box {
+      max-height: 94vh;
+      overflow-y: auto;
+    }
+    .glass-card-box::-webkit-scrollbar { width: 4px; }
+    .glass-card-box::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.2); border-radius: 2px; }
+
+    @media (max-height: 640px) {
+      .glass-card-box { padding: 20px 25px; }
+      .card-icon { font-size: 1.8rem; margin-bottom: 6px; }
+      .glowing-title { font-size: 1.25rem; margin-bottom: 8px; }
+      .wish-text { font-size: 0.9rem; line-height: 1.5; }
+      .highlight-days { font-size: 1rem; margin: 10px 0; }
+      .gradient-text { font-size: 1.8rem; }
+      .sub-wish { font-size: 0.82rem; line-height: 1.5; margin-bottom: 15px; }
+      .guide-next-btn { padding: 10px; font-size: 0.85rem; }
+    }
+
+    @media (max-height: 500px) {
+      .auth-box { padding: 20px 30px; }
+      .auth-box h2 { font-size: 1.1rem; margin-bottom: 2px; }
+      .auth-box .subtitle { font-size: 0.75rem; margin-bottom: 10px; }
+      .auth-box input { padding: 10px; font-size: 1.3rem; margin: 5px 0 15px 0; }
+      .auth-box button { padding: 10px; font-size: 0.9rem; }
+      .real-pet-img { width: 55px; height: 55px; }
+    }
+
+    @media (max-width: 400px) or (max-height: 580px) {
+      .music-player { width: 285px; padding: 8px 12px; gap: 10px; margin-top: 8px; }
+      .vinyl-container { width: 50px; height: 50px; }
+      .vinyl-disc { width: 46px; height: 46px; }
+      .vinyl-needle { top: -8px; right: 2px; width: 15px; height: 28px; }
+      .song-title { font-size: 0.75rem; max-width: 100px; }
+      .player-controls { gap: 6px; }
+    }
+
+    /* 移动端或缩小的浏览器窗口：切图流横向改纵向排列，防止严重重叠 */
+    @media (max-width: 768px) or (max-height: 640px) {
+      .wrapper { padding: 15px 15px; justify-content: center; gap: 10px; }
+      .header-area h1 { font-size: 1.4rem; }
+      .stage { height: 70vh; }
+      
+      .slider-stage-container {
+        flex-direction: column;
+        justify-content: center;
+        gap: 15px;
+        width: 95%;
+      }
+      .left-intro-card {
+        width: 100%;
+        max-width: 450px;
+        padding: 15px 20px;
+        text-align: center;
+      }
+      .left-intro-card h2 { font-size: 1.1rem; margin-bottom: 6px; }
+      .left-intro-card p { font-size: 0.85rem; line-height: 1.5; text-align: center; }
+      
+      .slide-image-viewer {
+        width: 100%;
+        max-width: 450px;
+        height: 220px; 
+        flex: none;
+      }
+    }
+    
+    @media (max-height: 480px) {
+      .slide-image-viewer { height: 150px; }
+      .left-intro-card { padding: 10px 15px; }
+      .left-intro-card p {
+        display: -webkit-box;
+        -webkit-line-clamp: 2;
+        -webkit-box-orient: vertical;
+        overflow: hidden;
+      }
+    }
+
+    @media (max-width: 768px) or (max-height: 550px) {
+      .intro-container {
+        flex-direction: column;
+        height: 82vh;
+        width: 90%;
+      }
+      .intro-img-box { flex: 1; }
+      .intro-text-box { flex: 1.2; padding: 20px; overflow-y: auto; }
+      .intro-text-box h2 { font-size: 1.1rem; margin-bottom: 10px; }
+      .intro-text-box p { font-size: 0.85rem; line-height: 1.6; }
+    }
+  </style>
+</head>
+<body>
+
+  <audio id="main-html5-audio" preload="auto" loop></audio>
+
+  <div id="auth-screen">
+    <div class="clouds-container">
+      <div class="cloud cloud-1"></div>
+      <div class="cloud cloud-2"></div>
+      <div class="cloud cloud-3"></div>
+      <div class="cloud cloud-4"></div>
+      <div class="cloud cloud-5"></div>
+      <div class="cloud cloud-6"></div>
+      <div class="cloud cloud-7"></div>
+      <div class="cloud cloud-8"></div>
+    </div>
+    <canvas id="seaCanvas"></canvas>
+    <div class="auth-container">
+      <div class="cat-wrapper" id="cat-wrapper">
+        <div class="pet-bubble" id="cat-bubble">喵呜？</div>
+        <img src="小猫.gif" class="real-pet-img cat-img" id="pixel-cat" alt="小猫">
+      </div>
+      <div class="auth-box">
+        <h2>输入生日</h2>
+        <div class="subtitle">输入8位数字</div>
+        <div class="input-container">
+          <input type="password" id="birthday-input" placeholder="如20010212" maxlength="8">
+        </div>
+        <button id="auth-btn">开启</button>
+      </div>
+    </div>
+  </div>
+
+  <div id="loading-screen">
+    <div class="celestial-loader">
+      <div class="star star-1"></div>
+      <div class="star star-2"></div>
+    </div>
+    <p>正在同步...</p>
+  </div>
+
+  <div id="wish-screen" class="interactive-card-screen" style="display: none; opacity: 0;">
+    <div class="glass-card-box">
+      <div class="card-icon"></div>
+      <h2 class="glowing-title">Happy Birthday</h2>
+      <p class="wish-text">“阅世增智，常存清朗”</p>
+      <p class="highlight-days"> 祝<span id="age-num" class="gradient-text">--</span> 岁生日快乐 </p>
+      <p class="sub-wish">
+        “愿岁岁成长，世事皆明，清醒自持，内心通透”
+      </p>
+      <button id="to-anniversary-btn" class="guide-next-btn">继续 ➔</button>
+    </div>
+  </div>
+
+  <div id="anniversary-screen" class="interactive-card-screen" style="display: none; opacity: 0;">
+    <div class="glass-card-box">
+      <div class="card-icon">✨</div>
+      <h2 class="glowing-title"></h2>
+      <p class="wish-text">“因缘巧合，有幸相识”</p>
+      <p class="highlight-days">始于电话，至今<span id="meet-days" class="gradient-text">--</span> 天</p>
+      <p class="sub-wish">
+         “得以相识，值此生辰，愿岁岁安愉，前路从容”
+      </p>
+      <button id="to-gallery-btn" class="guide-next-btn">开启 ➔</button>
+    </div>
+  </div>
+
+  <canvas id="bgCanvas"></canvas>
+
+  <div class="wrapper" id="main-wrapper">
+    <div class="header-area">
+      <h1>Orbital Memories</h1>
+      
+      <div class="music-player" id="music-player">
+        <div class="vinyl-container">
+          <div class="vinyl-needle"></div>
+          <div class="vinyl-disc">
+            <div class="vinyl-center">🎵</div>
+          </div>
+        </div>
+        
+        <div class="player-body">
+          <div class="player-info">
+            <div class="song-details">
+              <span class="song-title" id="track-title">Loading...</span>
+              <span class="song-artist" id="track-artist">Loading...</span>
+            </div>
+            <div class="player-controls">
+              <button class="play-btn-node" id="track-prev">⏮</button>
+              <button class="play-btn-node play-main-toggle" id="track-toggle">▶</button>
+              <button class="play-btn-node" id="track-next">⏭</button>
+            </div>
+          </div>
+          <div class="progress-box" id="track-progress-container">
+            <div class="progress-bar-fill" id="track-progress-fill"></div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="stage" id="stage-hub">
+      
+      <div class="slider-stage-container" id="slider-view-node">
+        <div class="left-intro-card" id="slider-card-node">
+          <h2 id="card-title-node">加载中</h2>
+          <p id="card-desc-node">加载中...</p>
+        </div>
+        <div class="slide-image-viewer" id="slider-viewer-box">
+        </div>
+      </div>
+
+      <div class="orbit-stage-container" id="orbit-view-node">
+        <div class="gallery-orbit" id="orbit-container"></div>
+      </div>
+
+    </div>
+    
+    <div style="height: 10px;"></div>
+  </div>
+
+  <div class="lightbox" id="lightbox">
+    <div class="intro-container">
+      <div class="intro-img-box" id="lightbox-img-box">Memory</div>
+      <div class="intro-text-box"><h2 id="intro-title"></h2><p id="intro-desc"></p></div>
+    </div>
+  </div>
+
+  <script>
+    // =========================================================================
+    // 🛠️ 专属浪漫定制看板
+    // =========================================================================
+    const MEET_DATE = "2026-08-29";   //  自定义相遇日期
+
+    const songPlaylist = [
+
+      { 
+        title: "The truth that you leave", 
+        artist: "Pianoboy高至豪",
+        url: "https://music.163.com/song/media/outer/url?id=139774.mp3"
+      }
+    ];
+
+    // 📸 相册数据层
+    const galleryData = [
+       { 
+        url: '罗.jpg', 
+        title: 'Happy Birthday ✨', 
+        desc: '新岁，平安，顺遂' 
+      },
+      { 
+        url: '彩虹.jpg', 
+        title: '抬头见彩虹', 
+        desc: '抬眸恰逢稀世霞彩。如艳羽轻丝，漫铺远空' 
+      },
+      { 
+        url: '樱花.jpg', 
+        title: '春意漫山头 ', 
+        desc: '繁花满树，满目绯色烂漫。清风漫拂' 
+      },
+      { 
+        url: '油菜花.jpg', 
+        title: '金畴无际', 
+        desc: '金英铺野，白云遥驻天际' 
+      },
+      { 
+        url: '紫花.jpg', 
+        title: '漫步紫海', 
+        desc: '茫茫紫海，风起花如紫浪' 
+      },
+      { 
+        url: '小狗.jpg', 
+        title: '偶遇瞌睡虫', 
+        desc: '静卧道旁，安然酣眠' 
+      },
+      { 
+        url: '定格.jpg', 
+        title: '定格欢喜', 
+        desc: '此间烟火，定格笑颜' 
+      },
+      { 
+        url: '同框.jpg', 
+        title: '同框留影', 
+        desc: '花在手中，美好定格' 
+      }
+    ];
+
+    // =========================================================================
+    // 🎵 播放器引擎
+    // =========================================================================
+    const audioEl = document.getElementById('main-html5-audio');
+    const musicPlayerNode = document.getElementById('music-player');
+    let activeTrackIdx = 0;
+    
+    const trackTitleNode = document.getElementById('track-title');
+    const trackArtistNode = document.getElementById('track-artist');
+    const trackToggleNode = document.getElementById('track-toggle');
+    const progressFillNode = document.getElementById('track-progress-fill');
+    const progressContainerNode = document.getElementById('track-progress-container');
+
+    function initAudioTrack() {
+      const track = songPlaylist[activeTrackIdx];
+      audioEl.src = track.url;
+      trackTitleNode.innerText = track.title;
+      trackArtistNode.innerText = track.artist;
+    }
+    initAudioTrack();
+
+    function playTrack() {
+      audioEl.play().then(() => {
+        trackToggleNode.innerText = "⏸";
+        musicPlayerNode.classList.add('playing');
+      }).catch(err => console.log("等待手势激活:", err));
+    }
+
+    function pauseTrack() {
+      audioEl.pause();
+      trackToggleNode.innerText = "▶";
+      musicPlayerNode.classList.remove('playing');
+    }
+
+    trackToggleNode.addEventListener('click', () => {
+      if (audioEl.paused) playTrack();
+      else pauseTrack();
+    });
+
+    document.getElementById('track-next').addEventListener('click', () => {
+      activeTrackIdx = (activeTrackIdx + 1) % songPlaylist.length;
+      initAudioTrack(); playTrack();
+    });
+
+    document.getElementById('track-prev').addEventListener('click', () => {
+      activeTrackIdx = (activeTrackIdx - 1 + songPlaylist.length) % songPlaylist.length;
+      initAudioTrack(); playTrack();
+    });
+
+    audioEl.addEventListener('timeupdate', () => {
+      if (audioEl.duration) {
+        const percentage = (audioEl.currentTime / audioEl.duration) * 100;
+        progressFillNode.style.width = `${percentage}%`;
+      }
+    });
+
+    progressContainerNode.addEventListener('click', (e) => {
+      const boxRect = progressContainerNode.getBoundingClientRect();
+      const clickPercent = (e.clientX - boxRect.left) / boxRect.width;
+      if (audioEl.duration) audioEl.currentTime = clickPercent * audioEl.duration;
+    });
+
+    audioEl.addEventListener('ended', () => {
+      activeTrackIdx = (activeTrackIdx + 1) % songPlaylist.length;
+      initAudioTrack(); playTrack();
+    });
+
+    // =========================================================================
+    // 🌊 海浪背景
+    // =========================================================================
+    const seaCanvas = document.getElementById('seaCanvas');
+    const seaCtx = seaCanvas.getContext('2d');
+    let seaGlobalTime = 0;
+    function resizeSea() { seaCanvas.width = window.innerWidth; seaCanvas.height = window.innerHeight * 0.32; }
+    window.addEventListener('resize', resizeSea); resizeSea();
+
+    function renderPerspectiveSea() {
+      seaCtx.clearRect(0, 0, seaCanvas.width, seaCanvas.height); seaGlobalTime += 0.012;
+      const w = seaCanvas.width, h = seaCanvas.height;
+      const layersConfig = [
+        { baseY: h * 0.35, amp: 5,  freq: 0.006, speed: 0.4,  c1: 'rgba(224, 242, 254, 0.4)', c2: 'rgba(186, 230, 253, 0.6)' }, 
+        { baseY: h * 0.55, amp: 9,  freq: 0.010, speed: -0.7, c1: 'rgba(14, 165, 233, 0.25)', c2: 'rgba(56, 189, 248, 0.5)' }, 
+        { baseY: h * 0.75, amp: 14, freq: 0.015, speed: 1.1,  c1: 'rgba(2, 132, 199, 0.45)',  c2: 'rgba(14, 165, 233, 0.75)' } 
+      ];
+      layersConfig.forEach((layer) => {
+        seaCtx.save();
+        const grad = seaCtx.createLinearGradient(0, layer.baseY - layer.amp, 0, h);
+        grad.addColorStop(0, layer.c1); grad.addColorStop(1, layer.c2);
+        seaCtx.fillStyle = grad; seaCtx.beginPath(); seaCtx.moveTo(0, h); seaCtx.lineTo(0, layer.baseY);
+        for (let x = 0; x <= w; x += 4) {
+          const waveOffset = Math.sin(x * layer.freq + seaGlobalTime * layer.speed) * layer.amp 
+                           + Math.cos(x * layer.freq * 0.4 + seaGlobalTime * layer.speed * 0.5) * (layer.amp * 0.3);
+          seaCtx.lineTo(x, layer.baseY + waveOffset);
+        }
+        seaCtx.lineTo(w, h); seaCtx.closePath(); seaCtx.fill(); seaCtx.restore();
+      });
+      requestAnimationFrame(renderPerspectiveSea);
+    }
+    renderPerspectiveSea();
+
+    // =========================================================================
+    // 🐱 小猫智能交互机制
+    // =========================================================================
+    const catWrapper = document.getElementById('cat-wrapper');
+    const catElement = document.getElementById('pixel-cat');
+    const catBubble = document.getElementById('cat-bubble');
+    const birthdayInput = document.getElementById('birthday-input');
+    const catIdleQuotes = ["隐私模式已启", "回车也可解锁", "格式必须准确哦", "贴贴！"];
+
+    const catStepQuotes = [
+      "愿你眼里有星辰，身边有温暖。✨",
+      "愿自有力量，抛开杂念，一切顺遂",
+      "生活明朗，万物可爱 🌸",
+      "年份解锁成功！后面还要月和日哦 📅",
+      "把全世界的好天气都借给你。",
+      "你温柔了整条时间轴。",
+      "生活碎片，每一帧都有特殊引力。",
+      "愿强大依旧，少烦忧，多从容 ✨"
+    ];
+
+    function triggerSpeech(wrapper, bubble, text) {
+      wrapper.classList.add('speaking'); bubble.innerText = text;
+      clearTimeout(wrapper.talkTimeout); wrapper.talkTimeout = setTimeout(() => wrapper.classList.remove('speaking'), 2500);
+    }
+    catElement.addEventListener('mouseenter', () => { if (birthdayInput.value.length === 0) triggerSpeech(catWrapper, catBubble, catIdleQuotes[Math.floor(Math.random() * catIdleQuotes.length)]); });
+    catElement.addEventListener('click', () => {
+      catElement.style.animation = 'jumpAction 0.4s ease'; triggerSpeech(catWrapper, catBubble, "准备好进入星轨了吗？");
+      setTimeout(() => catElement.style.animation = 'catFloatAnimation 2s ease-in-out infinite alternate', 400);
+    });
+    
+    birthdayInput.addEventListener('input', () => {
+      birthdayInput.value = birthdayInput.value.replace(/[^\d]/g, ''); 
+      const numLength = birthdayInput.value.length;
+      if (numLength > 0 && numLength <= 8) { 
+        catWrapper.classList.add('peeking'); 
+        triggerSpeech(catWrapper, catBubble, catStepQuotes[Math.min(numLength - 1, catStepQuotes.length - 1)]);
+      } else { 
+        catWrapper.classList.remove('peeking', 'speaking'); 
+      }
+    });
+
+    // =========================================================================
+    // 🔒 流程校验中心
+    // =========================================================================
+    let currentFlowStage = 'auth'; 
+    let currentSlideIdx = 0;
+    let currentLayoutMatrix = 0; 
+    let isTransitioning = false;
+
+    const sliderViewNode = document.getElementById('slider-view-node');
+    const orbitViewNode = document.getElementById('orbit-view-node');
+    const sliderViewerBox = document.getElementById('slider-viewer-box');
+    const cardTitleNode = document.getElementById('card-title-node');
+    const cardDescNode = document.getElementById('card-desc-node');
+    const orbitContainer = document.getElementById('orbit-container');
+
+    function unlockGallery() {
+      const inputVal = birthdayInput.value.trim();
+      const authBox = document.querySelector('.auth-box');
+
+      if(!/^\d{8}$/.test(inputVal)) {
+        authBox.classList.add('shake-error');
+        birthdayInput.style.borderColor = '#ff4d4f';
+        birthdayInput.style.boxShadow = '0 0 15px rgba(255, 77, 79, 0.4)';
+        triggerSpeech(catWrapper, catBubble, "格式不对，无法开启！");
+        setTimeout(() => authBox.classList.remove('shake-error'), 400);
+        return; 
+      }
+
+      birthdayInput.style.borderColor = 'rgba(255, 255, 255, 0.5)';
+      birthdayInput.style.boxShadow = 'none';
+
+      currentFlowStage = 'loading';
+      document.getElementById('auth-screen').style.opacity = '0'; 
+      document.getElementById('auth-screen').style.pointerEvents = 'none';
+      const loader = document.getElementById('loading-screen'); 
+      loader.style.display = 'flex'; 
+      setTimeout(() => loader.style.opacity = '1', 10);
+      
+      setTimeout(() => { 
+        loader.style.opacity = '0'; 
+        setTimeout(() => { 
+          loader.style.display = 'none'; 
+          const birthYearParsed = parseInt(inputVal.substring(0, 4), 10);
+          document.getElementById('age-num').innerText = new Date().getFullYear() - birthYearParsed;
+          
+          currentFlowStage = 'wish';
+          const wishScreen = document.getElementById('wish-screen');
+          wishScreen.style.display = 'flex';
+          setTimeout(() => wishScreen.style.opacity = '1', 50);
+          playTrack(); 
+        }, 500); 
+      }, 1800);
+    }
+    
+    document.getElementById('to-anniversary-btn').addEventListener('click', () => {
+      const wishScreen = document.getElementById('wish-screen');
+      wishScreen.style.opacity = '0';
+      setTimeout(() => {
+        wishScreen.style.display = 'none';
+        const dayDifference = Math.floor(Math.abs(new Date() - new Date(MEET_DATE)) / (1000 * 60 * 60 * 24));
+        document.getElementById('meet-days').innerText = dayDifference;
+        
+        currentFlowStage = 'anniversary';
+        const annScreen = document.getElementById('anniversary-screen');
+        annScreen.style.display = 'flex';
+        setTimeout(() => annScreen.style.opacity = '1', 50);
+      }, 600);
+    });
+
+    document.getElementById('to-gallery-btn').addEventListener('click', () => {
+      const annScreen = document.getElementById('anniversary-screen');
+      annScreen.style.opacity = '0';
+      setTimeout(() => {
+        annScreen.style.display = 'none';
+        currentFlowStage = 'slider';
+        cardTitleNode.innerText = galleryData[0].title;
+        cardDescNode.innerText = galleryData[0].desc;
+        sliderViewNode.style.display = 'flex';
+        setTimeout(() => sliderViewNode.style.opacity = '1', 50);
+      }, 600);
+    });
+
+    document.getElementById('auth-btn').addEventListener('click', unlockGallery);
+    birthdayInput.addEventListener('keypress', (e) => { if (e.key === 'Enter') unlockGallery(); });
+    document.getElementById('lightbox').addEventListener('click', () => { document.getElementById('lightbox').classList.remove('active'); setTimeout(() => document.getElementById('lightbox').style.display = 'none', 300); });
+
+    // =========================================================================
+    // 3. 流式切图控制
+    // =========================================================================
+    galleryData.forEach((data, index) => {
+      const item = document.createElement('div');
+      item.className = `slide-img-item ${index === 0 ? 'active' : ''}`;
+      const placeholder = document.createElement('div');
+      placeholder.className = 'slide-img-placeholder';
+      if(data.url) placeholder.innerHTML = `<img src="${data.url}" alt="">`;
+      else placeholder.innerText = data.title.split(' ')[0];
+      item.appendChild(placeholder);
+      sliderViewerBox.appendChild(item);
+    });
+
+    function updateSliderDisplay(nextIdx) {
+      if(isTransitioning) return;
+      isTransitioning = true;
+      const slideItems = document.querySelectorAll('.slide-img-item');
+      const currentItem = slideItems[currentSlideIdx];
+      const nextItem = slideItems[nextIdx];
+
+      currentItem.classList.remove('active');
+      currentItem.classList.add('exit'); 
+
+      nextItem.style.transform = 'translateY(-100%)'; nextItem.style.opacity = '0';
+      setTimeout(() => { nextItem.classList.add('active'); nextItem.style.transform = 'translateY(0)'; nextItem.style.opacity = '1'; }, 20);
+
+      const leftCard = document.getElementById('slider-card-node');
+      leftCard.style.opacity = '0'; leftCard.style.transform = 'translateX(-20px)';
+      
+      setTimeout(() => {
+        cardTitleNode.innerText = galleryData[nextIdx].title;
+        cardDescNode.innerText = galleryData[nextIdx].desc;
+        leftCard.style.opacity = '1'; leftCard.style.transform = 'translateX(0)';
+        currentSlideIdx = nextIdx;
+        isTransitioning = false;
+      }, 350);
+
+      setTimeout(() => currentItem.classList.remove('exit'), 700);
+    }
+
+    function handleSliderNext() {
+      if (currentFlowStage !== 'slider' || isTransitioning) return;
+      if (currentSlideIdx < galleryData.length - 1) {
+        updateSliderDisplay(currentSlideIdx + 1);
+      } else {
+        executeFlowTransitionStage(); 
+      }
+    }
+
+    let lastWheelTime = 0;
+    window.addEventListener('wheel', (e) => {
+      if (currentFlowStage !== 'slider') return;
+      const now = Date.now();
+      if (now - lastWheelTime < 900) return; 
+      if (e.deltaY > 0) { lastWheelTime = now; handleSliderNext(); }
+    });
+    sliderViewerBox.addEventListener('click', handleSliderNext);
+
+    // =========================================================================
+    // 4. 星轨爆发转场矩阵 (增加自适应比例缩放因子控制)
+    // =========================================================================
+    const cards = [];
+    const TOTAL_BURST_CARDS = 21; 
+
+    for (let i = 0; i < TOTAL_BURST_CARDS; i++) {
+      const coreDataIdx = i % galleryData.length;
+      const data = galleryData[coreDataIdx];
+
+      const card = document.createElement('div');
+      card.className = 'img-card';
+      const placeholder = document.createElement('div');
+      placeholder.className = 'img-placeholder';
+      if(data.url) placeholder.innerHTML = `<img src="${data.url}">`;
+      else placeholder.innerText = data.title.split(' ')[0];
+      card.appendChild(placeholder);
+      orbitContainer.appendChild(card);
+      cards.push(card);
+
+      card.addEventListener('click', (e) => {
+        e.stopPropagation();
+        if (currentFlowStage !== 'orbit') return;
+        if (currentLayoutMatrix < 5) { advanceMatrixLayout(); } 
+        else {
+          document.getElementById('intro-title').innerText = data.title;
+          document.getElementById('intro-desc').innerText = data.desc;
+          const imgBox = document.getElementById('lightbox-img-box');
+          if(data.url) imgBox.innerHTML = `<img src="${data.url}" style="width:100%; height:100%; object-fit:contain;">`;
+          else imgBox.innerText = data.title;
+          document.getElementById('lightbox').style.display = 'flex';
+          setTimeout(() => document.getElementById('lightbox').classList.add('active'), 10);
+        }
+      });
+    }
+
+    function executeFlowTransitionStage() {
+      currentFlowStage = 'transition';
+      isTransitioning = true;
+      sliderViewNode.style.filter = 'blur(12px)'; sliderViewNode.style.opacity = '0';
+      sliderViewNode.style.transform = 'scale(0.001) rotate(720deg)'; 
+      
+      setTimeout(() => {
+        sliderViewNode.style.display = 'none';
+        orbitViewNode.style.display = 'flex';
+        globalOrbitAngle = 0; orbitContainer.style.setProperty('--orbit-angle', `0deg`);
+
+        cards.forEach((card) => {
+          card.style.opacity = '0'; card.style.transition = 'none'; 
+          const angle = Math.random() * Math.PI * 2;
+          const viewportDist = Math.max(window.innerWidth, window.innerHeight) * 1.2 + 300; 
+          card.style.setProperty('--x', `${Math.cos(angle) * viewportDist}px`);
+          card.style.setProperty('--y', `${Math.sin(angle) * viewportDist}px`);
+          card.style.setProperty('--r', `${(Math.random() - 0.5) * 1440}deg`); 
+          card.style.setProperty('--s', '0.05'); 
+        });
+
+        setTimeout(() => {
+          orbitViewNode.style.opacity = '1';
+          cards.forEach((card, i) => {
+            card.style.transition = `transform 0.95s cubic-bezier(0.16, 1, 0.3, 1), opacity 0.7s ease`;
+            card.style.transitionDelay = `${(i % 5) * 0.06}s`; 
+            card.style.setProperty('--x', `0px`); card.style.setProperty('--y', `0px`);
+            card.style.setProperty('--r', `0deg`); card.style.setProperty('--s', '1'); 
+            card.style.opacity = '1';
+          });
+
+          setTimeout(() => {
+            cards.forEach((card) => { card.style.transitionDelay = '0s'; card.style.transition = 'transform 0.53s cubic-bezier(0.1, 1, 0.3, 1), opacity 0.4s ease'; });
+            currentLayoutMatrix = 0; applyMatrixState(0); 
+            currentFlowStage = 'orbit'; isTransitioning = false;
+          }, 1400); 
+        }, 50); 
+      }, 750); 
+    }
+
+    function applyMatrixState(matrixState) {
+      const count = cards.length;
+      
+      // 核心弹性机制：根据视口大小动态缩放星轨整体半径和卡片倍率
+      const minDim = Math.min(window.innerWidth, window.innerHeight);
+      const layoutScale = minDim < 800 ? (minDim / 800) : 1;
+      const clampedScale = Math.max(0.42, layoutScale); 
+
+      cards.forEach((card, index) => {
+        card.style.opacity = '1';
+        if (matrixState === 0) {
+          card.style.setProperty('--s', `${1 * clampedScale}`);
+          card.style.setProperty('--x', `${((index % 5 - 2) * 8 + Math.sin(index)*2) * clampedScale}px`);
+          card.style.setProperty('--y', `${((Math.floor(index / 5) - 1.5) * 6 + Math.cos(index)*2) * clampedScale}px`);
+          card.style.setProperty('--r', `${(index % 5 - 2) * 2}deg`);
+        } 
+        else if (matrixState === 1) {
+          card.style.setProperty('--s', `${0.95 * clampedScale}`);
+          const theta = index * 2.39996; const radius = Math.sqrt(index) * 75 * clampedScale; 
+          card.style.setProperty('--x', `${Math.cos(theta) * radius}px`);
+          card.style.setProperty('--y', `${Math.sin(theta) * radius}px`);
+          card.style.setProperty('--r', `${theta * (180 / Math.PI) - 90}deg`);
+        } 
+        else if (matrixState === 2) {
+          card.style.setProperty('--s', `${0.95 * clampedScale}`);
+          const armIndex = index % 4; const layerStep = Math.floor(index / 4) + 1; const distance = layerStep * 75 * clampedScale; 
+          let mx = 0, my = 0;
+          if (armIndex === 0) my = -distance; if (armIndex === 1) mx = distance; if (armIndex === 2) my = distance; if (armIndex === 3) mx = -distance;
+          card.style.setProperty('--x', `${mx}px`); card.style.setProperty('--y', `${my}px`); card.style.setProperty('--r', `${armIndex * 90 + (layerStep * 2)}deg`);
+        } 
+        else if (matrixState === 3) {
+          card.style.setProperty('--s', `${1 * clampedScale}`);
+          const angle = index * (Math.PI * 2 / count) - Math.PI / 2; const dynamicRadius = Math.min(window.innerWidth, window.innerHeight) * 0.33 + 15; 
+          card.style.setProperty('--x', `${Math.cos(angle) * dynamicRadius}px`); card.style.setProperty('--y', `${Math.sin(angle) * dynamicRadius}px`);
+          card.style.setProperty('--r', `${angle * (180 / Math.PI) + 90}deg`);
+        }
+        else if (matrixState === 4) {
+          card.style.setProperty('--s', `${0.82 * clampedScale}`);
+          const t = (index / count) * Math.PI * 2;
+          const heartX = 16 * Math.pow(Math.sin(t), 3);
+          const heartY = -(13 * Math.cos(t) - 5 * Math.cos(2*t) - 2 * Math.cos(3*t) - Math.cos(4*t));
+          const heartScale = Math.min(window.innerWidth, window.innerHeight) * 0.022 + 4;
+          card.style.setProperty('--x', `${heartX * heartScale}px`); card.style.setProperty('--y', `${heartY * heartScale - 10}px`); 
+          card.style.setProperty('--r', `${Math.sin(t) * 18}deg`);
+        }
+        else if (matrixState === 5) {
+          const zProgress = index / count; const tunnelScale = (0.45 + zProgress * 0.75) * clampedScale; const spiralAngle = index * 0.52; const tunnelRadius = (30 + zProgress * window.innerWidth * 0.32) * (minDim < 800 ? 0.7 : 1); 
+          card.style.setProperty('--s', `${tunnelScale}`);
+          card.style.setProperty('--x', `${Math.cos(spiralAngle) * tunnelRadius}px`); card.style.setProperty('--y', `${Math.sin(spiralAngle) * tunnelRadius}px`);
+          card.style.setProperty('--r', `${(spiralAngle * 180 / Math.PI) + 90}deg`);
+        }
+      });
+    }
+
+    function advanceMatrixLayout() { if(currentLayoutMatrix < 5) { currentLayoutMatrix++; applyMatrixState(currentLayoutMatrix); } }
+    orbitViewNode.addEventListener('click', advanceMatrixLayout);
+
+    let globalOrbitAngle = 0;
+    function renderOrbit() {
+      if (currentFlowStage === 'orbit' && currentLayoutMatrix !== 0 && currentLayoutMatrix !== 4) { 
+        globalOrbitAngle += 0.35; orbitContainer.style.setProperty('--orbit-angle', `${globalOrbitAngle}deg`); 
+      } else { orbitContainer.style.setProperty('--orbit-angle', `0deg`); }
+      requestAnimationFrame(renderOrbit);
+    }
+    renderOrbit();
+
+    // =========================================================================
+    // 5. 背景宇宙粒子动态环境与 Resize 监听统一合并
+    // =========================================================================
+    const bgCanvas = document.getElementById('bgCanvas'); const bgCtx = bgCanvas.getContext('2d'); let spaceParticles = [];
+    
+    function resizeBg() { bgCanvas.width = window.innerWidth; bgCanvas.height = window.innerHeight; }
+    
+    // 监听窗口缩放事件，动态刷新画布，并让星轨重新布局计算尺寸防止交错重叠
+    window.addEventListener('resize', () => {
+      resizeSea();
+      resizeBg();
+      if (currentFlowStage === 'orbit') {
+        applyMatrixState(currentLayoutMatrix);
+      }
+    });
+    resizeBg();
+
+    function drawHeartShape(ctx, x, y, w, h) { ctx.beginPath(); let topCurveHeight = h * 0.3; ctx.moveTo(x, y + topCurveHeight); ctx.bezierCurveTo(x, y, x - w / 2, y, x - w / 2, y + topCurveHeight); ctx.bezierCurveTo(x - w / 2, y + (h + topCurveHeight) / 2, x, y + (h + topCurveHeight) / 2, x, y + h); ctx.bezierCurveTo(x, y + (h + topCurveHeight) / 2, x + w / 2, y + (h + topCurveHeight) / 2, x + w / 2, y + topCurveHeight); ctx.bezierCurveTo(x + w / 2, y, x, y, x, y + topCurveHeight); ctx.fill(); }
+    class CosmicElement {
+      constructor(type) { this.type = type; this.x = Math.random() * bgCanvas.width; this.y = Math.random() * bgCanvas.height; this.size = type === 'heart' ? (Math.random() * 10 + 6) : (Math.random() * 3.5 + 1.2); this.speedY = type === 'heart' ? (Math.random() * 0.6 + 0.4) : (Math.random() * 1.5 + 0.8); this.speedX = (Math.random() - 0.5) * 0.6; this.alpha = Math.random() * 0.45 + 0.15; this.glow = type === 'light' ? Math.random() * 10 + 5 : 0; }
+      update() { this.y -= this.speedY; this.x += this.speedX; if (this.y < -20) { this.y = bgCanvas.height + 20; this.x = Math.random() * bgCanvas.width; } }
+      draw() { bgCtx.save(); bgCtx.globalAlpha = this.alpha; if (this.type === 'heart') { bgCtx.fillStyle = `rgba(255, 140, 158, ${this.alpha})`; drawHeartShape(bgCtx, this.x, this.y, this.size, this.size); } else { bgCtx.fillStyle = '#ffffff'; bgCtx.shadowBlur = this.glow; bgCtx.shadowColor = '#00bcff'; bgCtx.beginPath(); bgCtx.arc(this.x, this.y, this.size, 0, Math.PI*2); bgCtx.fill(); } bgCtx.restore(); }
+    }
+    for(let i=0; i<60; i++) spaceParticles.push(new CosmicElement('heart'));
+    for(let i=0; i<120; i++) spaceParticles.push(new CosmicElement('light'));
+    function animateBg() { bgCtx.clearRect(0, 0, bgCanvas.width, bgCanvas.height); spaceParticles.forEach(p => { p.update(); p.draw(); }); requestAnimationFrame(animateBg); }
+    animateBg();
+  </script>
+</body>
+</html>
